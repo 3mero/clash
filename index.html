@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة المشاركة</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2c2c2c;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+        .names-list, .results {
+            width: 45%;
+        }
+        .names-list {
+            order: 2; 
+        }
+        .results {
+            order: 1; 
+        }
+        .name-code {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #444;
+            border-radius: 5px;
+        }
+        .name-code div {
+            flex: 1;
+        }
+        .button {
+            padding: 5px 10px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            border-radius: 5px;
+        }
+        .joined {
+            background-color: #4caf50;
+        }
+        .not-joined {
+            background-color: #f44336;
+        }
+        #result-box, #non-participants-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #444;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .result-participant {
+            color: #4caf50;
+        }
+        .result-non-participant {
+            color: #f44336;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #555;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #666;
+        }
+        .search-box {
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .player-count {
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+        .code-link {
+            color: #1e90ff;
+            cursor: pointer;
+        }
+        .dropdown {
+            background-color: #444;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        .dropdown input {
+            margin-right: 5px;
+        }
+    </style>
+
+</head>
+<body>
+
+    <!-- الشعار -->
+    <img src="https://api-assets.clashofclans.com/badges/512/o1rDeJBzFW4lWcj5s_xZDgkg8iuCqUX0beLeB_Mm7Qw.png" height="150px" width="150px" alt="Clan Badge" class="clanBadge_7YiK2">
+    <div>
+        <a href="https://www.clashofstats.com/ar/clans/2P8G9PQLJ/summary" style="text-decoration: none;">
+            <h1 style="font-size: 48px; color: black; text-align: center;">القدس لنا</h1>
+        </a>
+    </div>
+
+    <div class="container">
+        <div class="names-list">
+            <h2>إضافة الأسماء والأكواد</h2>
+            <div class="dropdown">
+                <input type="text" id="new-code" placeholder="أدخل الكود">
+                <input type="text" id="new-name" placeholder="أدخل الاسم">
+                <button onclick="addParticipant()">إضافة</button>
+            </div>
+            <!-- صندوق بحث للكود -->
+            <input type="text" id="search-code" class="search-box" onkeyup="searchByCode()" placeholder="ابحث عن كود...">
+            <!-- صندوق بحث للاسم -->
+            <input type="text" id="search-name" class="search-box" onkeyup="searchByName()" placeholder="ابحث عن اسم...">
+            <div id="participants"></div>
+
+
+            <button onclick="exportToJson()">تصدير JSON</button>
+            <input type="file" id="import-file" onchange="importFromJson()" />
+        </div>
+
+        <div class="results">
+            <div id="result-box">
+                <h3>نتائج المشاركة</h3>
+                <div id="results"></div>
+                <h4>عدد المشاركين: <span id="participant-count">0</span></h4>
+                <button onclick="copyResults()">نسخ النتائج</button>
+                <button onclick="clearParticipants()">تفريغ قائمة المشاركين</button>
+            </div>
+            <div id="non-participants-box">
+                <h3>قائمة الغير مشاركين</h3>
+                <div id="non-participants"></div>
+                <h4>عدد الغير مشاركين: <span id="non-participant-count">0</span></h4>
+                <button onclick="copyNonParticipants()">نسخ الغير مشاركين</button>
+                <button onclick="clearNonParticipants()">تفريغ قائمة الغير مشاركين</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="player-count" id="player-count">عدد اللاعبين: 0</div>
+
+    <script>
+        let participants = JSON.parse(localStorage.getItem('participants')) || {};
+
+        function addParticipant() {
+            const name = document.getElementById('new-name').value;
+            const code = document.getElementById('new-code').value;
+            if (name && code) {
+                const id = 'player_' + Date.now(); // Unique ID based on timestamp
+                participants[id] = { name, code, joined: null }; // Default to null (not participant or non-participant)
+                renderParticipant(id);
+                updateCount();
+                saveData();
+                document.getElementById('new-name').value = '';
+                document.getElementById('new-code').value = '';
+            }
+        }
+
+        function markParticipation(id, joined = true) {
+            participants[id].joined = joined;
+            document.getElementById(id).style.display = 'none';
+            updateResults();
+            updateNonParticipants();
+            saveData();
+        }
+
+        function deleteEntry(id) {
+            if (confirm("هل أنت متأكد من حذف هذا اللاعب؟")) {
+                delete participants[id];
+                document.getElementById(id).remove();
+                updateCount();
+                saveData();
+            }
+        }
+
+        function editParticipant(id) {
+            const newName = prompt("تعديل الاسم:", participants[id].name);
+            const newCode = prompt("تعديل الكود:", participants[id].code);
+            if (newName && newCode) {
+                participants[id].name = newName;
+                participants[id].code = newCode;
+                renderParticipant(id);
+                saveData();
+            }
+        }
+
+        function updateResults() {
+            const resultsContainer = document.getElementById('results');
+            let count = 0;
+            resultsContainer.innerHTML = '';
+            for (const [id, { name, joined }] of Object.entries(participants)) {
+                if (joined === true) {
+                    resultsContainer.innerHTML += `<div class="result-participant">🟢 ${name}</div>`;
+                    count++;
+                }
+            }
+            document.getElementById('participant-count').textContent = count;
+        }
+
+        function updateNonParticipants() {
+            const nonParticipantsContainer = document.getElementById('non-participants');
+            let count = 0;
+            nonParticipantsContainer.innerHTML = '';
+            for (const [id, { name, joined }] of Object.entries(participants)) {
+                if (joined === false) {
+                    nonParticipantsContainer.innerHTML += `<div class="result-non-participant">🔴 ${name}</div>`;
+                    count++;
+                }
+            }
+            document.getElementById('non-participant-count').textContent = count;
+        }
+
+        // بحث عن الاسم فقط
+        function searchByName() {
+            const filter = document.getElementById('search-name').value.toUpperCase();
+            const names = document.getElementById('participants').getElementsByClassName('name-code');
+            for (let i = 0; i < names.length; i++) {
+                const nameText = names[i].getElementsByTagName('input')[0].value;
+                names[i].style.display = nameText.toUpperCase().indexOf(filter) > -1 ? '' : 'none';
+            }
+        }
+
+        // بحث عن الكود فقط
+        function searchByCode() {
+            const filter = document.getElementById('search-code').value.toUpperCase();
+            const names = document.getElementById('participants').getElementsByClassName('name-code');
+            for (let i = 0; i < names.length; i++) {
+                const codeText = names[i].getElementsByTagName('a')[0].textContent;
+                names[i].style.display = codeText.toUpperCase().indexOf(filter) > -1 ? '' : 'none';
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('participants', JSON.stringify(participants));
+        }
+
+        function updateCount() {
+            document.getElementById('player-count').textContent = `عدد اللاعبين: ${Object.keys(participants).length}`;
+        }
+
+        function renderParticipant(id) {
+            const { name, code } = participants[id];
+            const sanitizedCode = code.replace('#', '');
+            const participantDiv = document.createElement('div');
+            participantDiv.classList.add('name-code');
+            participantDiv.id = id;
+            participantDiv.innerHTML = `
+                <a href="https://www.clashofstats.com/ar/players/${sanitizedCode}/summary" target="_blank" class="code-link">${code}</a>
+                <input type="text" value="${name}" id="name_${id}" disabled>
+                <button class="button joined" onclick="markParticipation('${id}', true)">مشارك</button>
+                <button class="button not-joined" onclick="markParticipation('${id}', false)">غير مشارك</button>
+                <button class="button edit" onclick="editParticipant('${id}')">تعديل</button>
+                <button class="button delete" onclick="deleteEntry('${id}')">حذف</button>
+            `;
+            document.getElementById('participants').appendChild(participantDiv);
+        }
+
+        function clearParticipants() {
+            for (const id of Object.keys(participants)) {
+                if (participants[id].joined === true) {
+                    participants[id].joined = null;
+                    document.getElementById(id).style.display = '';
+                }
+            }
+            updateResults();
+            updateCount();
+            saveData();
+        }
+
+        function clearNonParticipants() {
+            for (const id of Object.keys(participants)) {
+                if (participants[id].joined === false) {
+                    participants[id].joined = null;
+                    document.getElementById(id).style.display = '';
+                }
+            }
+            updateNonParticipants();
+            updateCount();
+            saveData();
+        }
+
+        function exportToJson() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(participants));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "players_data.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importFromJson() {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+            if (!file) {
+                return alert("يرجى اختيار ملف JSON.");
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    participants = { ...participants, ...importedData };
+                    for (const id of Object.keys(importedData)) {
+                        renderParticipant(id);
+                    }
+                    updateCount();
+                    saveData();
+                } catch (error) {
+                    alert("حدث خطأ أثناء استيراد البيانات. تأكد من أن الملف بتنسيق JSON صالح.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            for (const id of Object.keys(participants)) {
+                renderParticipant(id);
+            }
+            updateResults();
+            updateNonParticipants();
+            updateCount();
+        });
+    </script>
+
+</body>
+</html>
