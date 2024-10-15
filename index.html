@@ -56,9 +56,6 @@
         .joined {
             background-color: #4caf50;
         }
-        .not-joined {
-            background-color: #f44336;
-        }
         #result-box, #non-participants-box {
             margin-top: 20px;
             padding: 15px;
@@ -140,7 +137,6 @@
             <input type="text" id="search-name" class="search-box" onkeyup="searchByName()" placeholder="ابحث عن اسم...">
             <div id="participants"></div>
 
-
             <button onclick="exportToJson()">تصدير JSON</button>
             <input type="file" id="import-file" onchange="importFromJson()" />
         </div>
@@ -152,6 +148,7 @@
                 <h4>عدد المشاركين: <span id="participant-count">0</span></h4>
                 <button onclick="copyResults()">نسخ النتائج</button>
                 <button onclick="clearParticipants()">تفريغ قائمة المشاركين</button>
+                <button onclick="sortNonParticipants()">فرز الغير مشتركين</button> <!-- زر جديد -->
             </div>
             <div id="non-participants-box">
                 <h3>قائمة الغير مشاركين</h3>
@@ -236,23 +233,12 @@
             document.getElementById('non-participant-count').textContent = count;
         }
 
-        // بحث عن الاسم فقط
-        function searchByName() {
-            const filter = document.getElementById('search-name').value.toUpperCase();
-            const names = document.getElementById('participants').getElementsByClassName('name-code');
-            for (let i = 0; i < names.length; i++) {
-                const nameText = names[i].getElementsByTagName('input')[0].value;
-                names[i].style.display = nameText.toUpperCase().indexOf(filter) > -1 ? '' : 'none';
-            }
-        }
-
-        // بحث عن الكود فقط
-        function searchByCode() {
-            const filter = document.getElementById('search-code').value.toUpperCase();
-            const names = document.getElementById('participants').getElementsByClassName('name-code');
-            for (let i = 0; i < names.length; i++) {
-                const codeText = names[i].getElementsByTagName('a')[0].textContent;
-                names[i].style.display = codeText.toUpperCase().indexOf(filter) > -1 ? '' : 'none';
+        // وظيفة فرز الغير مشتركين
+        function sortNonParticipants() {
+            for (const [id, participant] of Object.entries(participants)) {
+                if (participant.joined === null) {
+                    markParticipation(id, false);
+                }
             }
         }
 
@@ -274,7 +260,6 @@
                 <a href="https://www.clashofstats.com/ar/players/${sanitizedCode}/summary" target="_blank" class="code-link">${code}</a>
                 <input type="text" value="${name}" id="name_${id}" disabled>
                 <button class="button joined" onclick="markParticipation('${id}', true)">مشارك</button>
-                <button class="button not-joined" onclick="markParticipation('${id}', false)">غير مشارك</button>
                 <button class="button edit" onclick="editParticipant('${id}')">تعديل</button>
                 <button class="button delete" onclick="deleteEntry('${id}')">حذف</button>
             `;
